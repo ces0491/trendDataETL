@@ -1,0 +1,86 @@
+INFO [2025-05-12 20:35:56] Logging initialized with level: INFO
+INFO [2025-05-12 20:35:56] Connected to SQLite database: music_streaming.db
+INFO [2025-05-12 20:35:57] Created processed_files table
+INFO [2025-05-12 20:35:57] Created platform_metadata table
+ERROR [2025-05-12 20:35:57] Error initializing database tables: could not find function "initialize_platforms"
+ERROR [2025-05-12 20:35:57] Error in DSP update: could not find function "define_platforms"
+INFO [2025-05-12 20:35:57] Logging initialized with level: INFO
+INFO [2025-05-12 20:35:57] Connected to SQLite database: music_streaming.db
+ERROR [2025-05-12 20:36:03] Error initializing database tables: could not find function "initialize_platforms"
+INFO [2025-05-12 20:38:53] Logging initialized with level: INFO
+INFO [2025-05-12 20:38:53] Connected to SQLite database: music_streaming.db
+INFO [2025-05-12 20:38:53] Registered new platform: apple_music (value_type: streams)
+INFO [2025-05-12 20:38:54] Created table: platform_am
+INFO [2025-05-12 20:38:54] Registered new platform: itunes (value_type: purchases)
+INFO [2025-05-12 20:38:54] Created table: platform_itn
+INFO [2025-05-12 20:38:54] Registered new platform: spotify (value_type: streams)
+INFO [2025-05-12 20:38:54] Created table: platform_spo
+INFO [2025-05-12 20:38:54] Registered new platform: soundcloud (value_type: plays)
+INFO [2025-05-12 20:38:54] Created table: platform_scu
+INFO [2025-05-12 20:38:54] Registered new platform: awa (value_type: plays)
+INFO [2025-05-12 20:38:54] Created table: platform_awa
+INFO [2025-05-12 20:38:54] Registered new platform: deezer (value_type: streams)
+INFO [2025-05-12 20:38:55] Created table: platform_dzr
+INFO [2025-05-12 20:38:55] Registered new platform: facebook (value_type: views)
+INFO [2025-05-12 20:38:55] Created table: platform_fbk
+INFO [2025-05-12 20:38:55] Registered new platform: vevo (value_type: views)
+INFO [2025-05-12 20:38:55] Created table: platform_vvo
+INFO [2025-05-12 20:38:55] Registered new platform: boomplay (value_type: plays)
+INFO [2025-05-12 20:38:56] Created table: platform_boo
+INFO [2025-05-12 20:38:56] Registered new platform: peloton (value_type: plays)
+INFO [2025-05-12 20:38:56] Created table: platform_plt
+INFO [2025-05-12 20:38:56] Database tables initialized
+INFO [2025-05-12 20:38:56] Updated value_type for platform: apple_music
+INFO [2025-05-12 20:38:56] Updated value_type for platform: itunes
+INFO [2025-05-12 20:38:56] Updated value_type for platform: spotify
+INFO [2025-05-12 20:38:56] Updated value_type for platform: soundcloud
+INFO [2025-05-12 20:38:56] Updated value_type for platform: awa
+INFO [2025-05-12 20:38:57] Updated value_type for platform: deezer
+INFO [2025-05-12 20:38:57] Updated value_type for platform: facebook
+INFO [2025-05-12 20:38:57] Updated value_type for platform: vevo
+INFO [2025-05-12 20:38:57] Updated value_type for platform: boomplay
+INFO [2025-05-12 20:38:57] Updated value_type for platform: peloton
+INFO [2025-05-12 20:38:59] Listed 0 folders in Google Drive
+INFO [2025-05-12 20:38:59] No date folders found
+INFO [2025-05-12 20:38:59] Created aggregated views
+INFO [2025-05-12 20:38:59] Cleaned up temporary files in: C:\Users\CESAI_~1\AppData\Local\Temp\RtmpIHht9P
+INFO [2025-05-12 20:38:59] Processed 0 files in total
+INFO [2025-05-12 20:38:59] Retrieved platform summary
+INFO [2025-05-12 20:38:59] Retrieved platform summary
+ERROR [2025-05-12 20:39:00] Error generating platform report: Scanner error: while scanning for the next token at line 2, column 31 found character that cannot start any token at line 2, column 31
+INFO [2025-05-12 20:39:00] DSP update completed successfully
+INFO [2025-05-12 20:39:00] Logging initialized with level: INFO
+INFO [2025-05-12 20:39:00] Connected to SQLite database: music_streaming.db
+INFO [2025-05-12 20:39:00] Updated value_type for platform: apple_music
+INFO [2025-05-12 20:39:00] Updated value_type for platform: itunes
+INFO [2025-05-12 20:39:00] Updated value_type for platform: spotify
+INFO [2025-05-12 20:39:00] Updated value_type for platform: soundcloud
+INFO [2025-05-12 20:39:00] Updated value_type for platform: awa
+INFO [2025-05-12 20:39:00] Updated value_type for platform: deezer
+INFO [2025-05-12 20:39:00] Updated value_type for platform: facebook
+INFO [2025-05-12 20:39:00] Updated value_type for platform: vevo
+INFO [2025-05-12 20:39:00] Updated value_type for platform: boomplay
+INFO [2025-05-12 20:39:00] Updated value_type for platform: peloton
+INFO [2025-05-12 20:39:00] Database tables initialized
+INFO [2025-05-12 20:39:00] Updated value_type for platform: apple_music
+INFO [2025-05-12 20:39:00] Updated value_type for platform: itunes
+INFO [2025-05-12 20:39:00] Updated value_type for platform: spotify
+INFO [2025-05-12 20:39:00] Updated value_type for platform: soundcloud
+INFO [2025-05-12 20:39:00] Updated value_type for platform: awa
+INFO [2025-05-12 20:39:00] Updated value_type for platform: deezer
+INFO [2025-05-12 20:39:00] Updated value_type for platform: facebook
+INFO [2025-05-12 20:39:00] Updated value_type for platform: vevo
+INFO [2025-05-12 20:39:00] Updated value_type for platform: boomplay
+INFO [2025-05-12 20:39:00] Updated value_type for platform: peloton
+INFO [2025-05-12 20:39:09] Google Drive authentication successful
+INFO [2025-05-12 20:39:10] Listed 0 folders in Google Drive
+INFO [2025-05-12 20:39:10] No date folders found
+INFO [2025-05-12 20:39:10] Created aggregated views
+INFO [2025-05-12 20:39:10] Cleaned up temporary files in: C:\Users\CESAI_~1\AppData\Local\Temp\RtmpIHht9P
+INFO [2025-05-12 20:39:10] Processed 0 files in total
+INFO [2025-05-12 20:39:11] Retrieved platform summary
+INFO [2025-05-12 20:39:11] Retrieved trending data for artist: 21 District
+INFO [2025-05-12 20:39:11] Retrieved platform comparison for track: The Reply
+WARN [2025-05-12 20:39:11] No data to export for platform: spo
+INFO [2025-05-12 20:39:11] Retrieved platform summary
+ERROR [2025-05-12 20:39:11] Error generating platform report: Scanner error: while scanning for the next token at line 2, column 31 found character that cannot start any token at line 2, column 31

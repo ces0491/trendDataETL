@@ -1,0 +1,33 @@
+Package: trendDataETL
+Title: Process and Analyze Music Streaming Platform Data
+Version: 0.1.0
+Authors@R: 
+    person("Cesaire", "Tobias", email = "ces@precise.digital", role = c("aut", "cre"))
+Description: A package to process, standardize, and analyze music streaming data 
+    from different Digital Service Providers (DSPs). It connects to Google Drive,
+    retrieves files, standardizes formats, and stores data in a SQL database for
+    historical trend analysis across platforms like Spotify, Apple Music, and others.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2
+Depends: 
+    R (>= 3.5.0)
+Imports: 
+    DBI,
+    RSQLite,
+    logger,
+    tools,
+    utils
+Suggests: 
+    googledrive,
+    readr,
+    readxl,
+    jsonlite,
+    RPostgres,
+    RMariaDB,
+    rmarkdown,
+    knitr,
+    ggplot2,
+    DT
