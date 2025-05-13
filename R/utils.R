@@ -81,15 +81,16 @@ initialize_system <- function(db_type = "sqlite", db_path = "music_streaming.db"
 #'
 #' @param system System object from initialize_system
 #' @param parent_folder_id Google Drive parent folder ID
-#' @param date_pattern Regex pattern to identify date folders (default: "^[0-9]{8}$")
+#' @param date_pattern Regex pattern to identify date folders (default: "^[0-9]{6}$")
 #' @param date_range Optional vector of length 2 with start and end dates
 #' @param temp_dir Temporary directory for downloads (default: tempdir())
 #' @return Total number of files processed
 #' @export
 process_all_dsp_data <- function(system, parent_folder_id,
-                                 date_pattern = "^[0-9]{8}$",
+                                 date_pattern = "^[0-9]{6}$",
                                  date_range = NULL,
                                  temp_dir = tempdir()) {
+
   tryCatch({
     # Check if system is initialized
     if (!exists("initialized", system) || !system$initialized) {
@@ -106,8 +107,8 @@ process_all_dsp_data <- function(system, parent_folder_id,
       setup_gdrive_auth()
     }
 
-    # Process all folders
-    total_processed <- process_gdrive_date_folders(
+    # Process all folders with nested structure
+    total_processed <- process_nested_folders(
       system$conn,
       parent_folder_id,
       date_pattern,
@@ -269,6 +270,7 @@ ggplot(platform_summary, aes(x = platform_name, y = total_records, fill = platfo
 run_dsp_update <- function(parent_folder_id, db_path = "music_streaming.db",
                            auth_token = NULL, date_range = NULL,
                            generate_report = TRUE, output_dir = "output") {
+
   tryCatch({
     # Create output directory if it doesn't exist
     if (!dir.exists(output_dir)) {

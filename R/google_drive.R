@@ -73,7 +73,9 @@ list_gdrive_folders <- function(parent_folder_id, pattern = NULL) {
 #' @return Data frame of files with id, name, platform, and modified time
 #' @export
 list_gdrive_files <- function(folder_id, platforms = NULL, pattern = NULL, strict = TRUE) {
-  tryCatch({
+
+  browser()
+    tryCatch({
     # Default platforms if not provided
     if (is.null(platforms)) {
       platforms <- define_platforms()
@@ -164,6 +166,336 @@ check_file_needs_processing <- function(conn, file_id, file_name, modified_time)
   })
 }
 
+#' Process nested folder structure from Google Drive
+#'
+#' This function processes a nested folder structure where date folders contain
+#' platform folders, which may contain additional subfolders before the actual data files.
+#'
+#' @param conn Database connection
+#' @param parent_folder_id Google Drive ID of the parent folder containing date folders
+#' @param date_pattern Regex pattern to identify date folders (default: "^[0-9]{6}$")
+#' @param date_range Optional vector of length 2 with start and end dates in format matching folder names
+#' @param platforms List of platform configurations (if NULL, will use define_platforms())
+#' @param temp_dir Temporary directory for file downloads (default: tempdir())
+#'
+#' @return Total number of files processed
+#' @export
+process_nested_folders <- function(conn, parent_folder_id,
+                                   date_pattern = "^[0-9]{6}$",
+                                   date_range = NULL,
+                                   platforms = NULL,
+                                   temp_dir = tempdir()) {
+  # Get platforms if not provided
+  if (is.null(platforms)) {
+    platforms <- define_platforms()
+  }
+
+  logger::log_info("Starting process_nested_folders with parent ID: ", parent_folder_id)
+
+  # CRITICAL FIX: First get the parent folder as a dribble object
+  parent_dribble <- tryCatch({
+    # Try to find it by ID first
+    result <- googledrive::drive_find(q = paste0("name = 'trend_data_sample'"), n_max = 10)
+
+    if (nrow(result) == 0) {
+      # If not found, try with the ID directly as last resort
+      result <- googledrive::as_dribble(parent_folder_id)
+    }
+
+    if (nrow(result) == 0) {
+      logger::log_error("Could not find the parent folder")
+      return(0)
+    }
+
+    result[1,]
+  }, error = function(e) {
+    logger::log_error("Error finding parent folder: ", e$message)
+    return(NULL)
+  })
+
+  if (is.null(parent_dribble)) {
+    logger::log_error("Failed to get parent folder as dribble object")
+    return(0)
+  }
+
+  logger::log_info("Successfully found parent folder: ", parent_dribble$name)
+
+  # Get all folders in the parent - using the dribble object
+  all_folders <- tryCatch({
+    googledrive::drive_ls(parent_dribble, type = "folder")
+  }, error = function(e) {
+    logger::log_error("Error listing folders in parent: ", e$message)
+    return(data.frame())
+  })
+
+  if (nrow(all_folders) == 0) {
+    logger::log_warn("No folders found in parent folder")
+    return(0)
+  }
+
+  logger::log_info("Found ", nrow(all_folders), " total folders in parent")
+
+  # Filter by date pattern
+  date_folders <- all_folders[grepl(date_pattern, all_folders$name), ]
+  if (nrow(date_folders) == 0) {
+    logger::log_warn("No date folders matching pattern '", date_pattern, "' found")
+    return(0)
+  }
+
+  logger::log_info("Found ", nrow(date_folders), " date folders matching pattern '", date_pattern, "'")
+
+  # Filter by date range if provided
+  if (!is.null(date_range) && length(date_range) == 2) {
+    start_date <- as.character(date_range[1])
+    end_date <- as.character(date_range[2])
+
+    date_folders <- date_folders[date_folders$name >= start_date &
+                                   date_folders$name <= end_date, ]
+
+    if (nrow(date_folders) == 0) {
+      logger::log_warn("No date folders within range ", start_date, " to ", end_date)
+      return(0)
+    }
+
+    logger::log_info("After date range filtering, ", nrow(date_folders), " folders remain")
+  }
+
+  total_files_processed <- 0
+
+  # Process each date folder
+  for (i in 1:nrow(date_folders)) {
+    date_folder <- date_folders[i, ]
+    date_name <- date_folder$name
+    logger::log_info("Processing date folder [", i, "/", nrow(date_folders), "]: ", date_name)
+
+    # Get platform folders in this date folder - using the dribble object
+    platform_folders <- tryCatch({
+      googledrive::drive_ls(date_folder, type = "folder")
+    }, error = function(e) {
+      logger::log_error("Error listing platform folders in date folder ", date_name, ": ", e$message)
+      return(data.frame())
+    })
+
+    if (nrow(platform_folders) == 0) {
+      logger::log_warn("  No platform folders found in date folder: ", date_name)
+      next
+    }
+
+    logger::log_info("  Found ", nrow(platform_folders), " platform folders")
+
+    # Print all platform folder names for debugging
+    logger::log_info("  Platform folders: ", paste(platform_folders$name, collapse = ", "))
+
+    # Process each platform folder
+    for (j in 1:nrow(platform_folders)) {
+      platform_folder <- platform_folders[j, ]
+      platform_name <- platform_folder$name
+      logger::log_info("  Processing platform folder [", j, "/", nrow(platform_folders), "]: ", platform_name)
+
+      # Match platform from folder name
+      matched_platform <- NULL
+      for (p_name in names(platforms)) {
+        platform <- platforms[[p_name]]
+
+        # Try to match platform by name or id in the folder name
+        if (grepl(platform$name, platform_name, ignore.case = TRUE) ||
+            grepl(platform$id, platform_name, ignore.case = TRUE)) {
+          matched_platform <- platform
+          logger::log_info("    Matched platform: ", platform$name, " (", platform$id, ")")
+          break
+        }
+      }
+
+      if (is.null(matched_platform)) {
+        logger::log_warn("    No matching platform found for folder: ", platform_name)
+
+        # Try a more lenient match
+        logger::log_info("    Trying more lenient platform matching...")
+        for (p_name in names(platforms)) {
+          platform <- platforms[[p_name]]
+
+          platform_parts <- strsplit(platform_name, "-|_|\\s+")[[1]]
+          for (part in platform_parts) {
+            if (nchar(part) >= 3 && (
+              grepl(part, platform$name, ignore.case = TRUE) ||
+              grepl(part, platform$id, ignore.case = TRUE)
+            )) {
+              matched_platform <- platform
+              logger::log_info("    Matched platform with lenient matching: ", platform$name, " (", platform$id, ")")
+              break
+            }
+          }
+
+          if (!is.null(matched_platform)) break
+        }
+
+        if (is.null(matched_platform)) {
+          logger::log_warn("    Still no match found, skipping folder: ", platform_name)
+          next
+        }
+      }
+
+      # Function to recursively find all files in a folder and its subfolders
+      find_all_files <- function(folder_dribble, files_acc = NULL) {
+        logger::log_debug("      Searching for files in folder: ", folder_dribble$name)
+
+        # Get all items - using dribble object
+        items <- tryCatch({
+          googledrive::drive_ls(folder_dribble)
+        }, error = function(e) {
+          logger::log_error("      Error listing items in folder: ", e$message)
+          return(data.frame())
+        })
+
+        if (nrow(items) == 0) {
+          logger::log_debug("      No items found in this folder")
+          return(files_acc)
+        }
+
+        logger::log_debug("      Found ", nrow(items), " items in folder")
+
+        # Initialize files_acc if NULL
+        if (is.null(files_acc)) {
+          files_acc <- data.frame(
+            name = character(),
+            id = character(),
+            drive_resource = list(),
+            stringsAsFactors = FALSE
+          )
+
+          # Add proper class to make it a dribble
+          class(files_acc) <- c("dribble", "tbl_df", "tbl", "data.frame")
+        }
+
+        # Extract files (non-folders)
+        files <- items[sapply(items$drive_resource, function(x) {
+          !grepl("folder", x$mimeType)
+        }), ]
+
+        if (nrow(files) > 0) {
+          logger::log_debug("      Found ", nrow(files), " files in folder")
+          if (nrow(files_acc) == 0) {
+            files_acc <- files
+          } else {
+            files_acc <- rbind(files_acc, files)
+          }
+        }
+
+        # Process subfolders
+        folders <- items[sapply(items$drive_resource, function(x) {
+          grepl("folder", x$mimeType)
+        }), ]
+
+        if (nrow(folders) > 0) {
+          logger::log_debug("      Found ", nrow(folders), " subfolders to process")
+
+          for (k in 1:nrow(folders)) {
+            logger::log_debug("      Processing subfolder [", k, "/", nrow(folders), "]: ", folders$name[k])
+            files_acc <- find_all_files(folders[k,], files_acc)
+          }
+        }
+
+        return(files_acc)
+      }
+
+      # Find all files in this platform folder - using dribble object
+      all_files <- find_all_files(platform_folder)
+
+      if (is.null(all_files) || nrow(all_files) == 0) {
+        logger::log_warn("    No files found in platform folder: ", platform_name)
+        next
+      }
+
+      logger::log_info("    Found ", nrow(all_files), " files")
+
+      # Log a sample of filenames for debugging
+      if (nrow(all_files) > 0) {
+        sample_size <- min(5, nrow(all_files))
+        sample_files <- all_files$name[1:sample_size]
+        logger::log_info("    Sample files: ", paste(sample_files, collapse = ", "))
+      }
+
+      # Process each file
+      files_processed <- 0
+      for (k in 1:nrow(all_files)) {
+        file <- all_files[k, ]
+        logger::log_info("    Processing file [", k, "/", nrow(all_files), "]: ", file$name)
+
+        # Check if file needs processing
+        needs_processing <- tryCatch({
+          check_file_needs_processing(
+            conn, file$id, file$name,
+            file$drive_resource[[1]]$modifiedTime
+          )
+        }, error = function(e) {
+          logger::log_error("      Error checking if file needs processing: ", e$message)
+          return(TRUE)  # Assume it needs processing if error
+        })
+
+        logger::log_info("      File needs processing: ", needs_processing)
+
+        if (needs_processing) {
+          # Download file - using dribble object
+          local_path <- tryCatch({
+            temp_file <- file.path(temp_dir, file$name)
+            googledrive::drive_download(file = file, path = temp_file, overwrite = TRUE)
+            temp_file
+          }, error = function(e) {
+            logger::log_error("      Error downloading file: ", e$message)
+            return(NULL)
+          })
+
+          if (is.null(local_path)) {
+            logger::log_warn("      Failed to download file")
+            next
+          }
+
+          logger::log_info("      Downloaded file to: ", local_path)
+
+          # Process file
+          result <- tryCatch({
+            process_platform_file(conn, local_path, matched_platform, file$id)
+          }, error = function(e) {
+            logger::log_error("      Error processing file: ", e$message)
+            return(FALSE)
+          })
+
+          logger::log_info("      File processing result: ", result)
+
+          if (result) {
+            files_processed <- files_processed + 1
+
+            # Update processed_files table
+            update_result <- tryCatch({
+              update_processed_file(
+                conn, file$id, file$name, matched_platform$id,
+                file$drive_resource[[1]]$modifiedTime
+              )
+            }, error = function(e) {
+              logger::log_error("      Error updating processed file record: ", e$message)
+              return(FALSE)
+            })
+
+            logger::log_info("      Updated processed_files record: ", update_result)
+          }
+
+          # Clean up
+          if (file.exists(local_path)) {
+            unlink(local_path, force = TRUE)
+            logger::log_debug("      Removed temporary file: ", local_path)
+          }
+        }
+      }
+
+      logger::log_info("    Processed ", files_processed, " files for platform: ", platform_name)
+      total_files_processed <- total_files_processed + files_processed
+    }
+  }
+
+  logger::log_info("Total files processed across all folders: ", total_files_processed)
+  return(total_files_processed)
+}
+
 #' Download a file from Google Drive to a local temporary directory
 #'
 #' @param file_id Google Drive file ID
@@ -208,6 +540,7 @@ download_gdrive_file <- function(file_id, file_name, temp_dir = tempdir()) {
 process_gdrive_folder <- function(conn, folder_id, platforms = NULL,
                                   temp_dir = tempdir(),
                                   process_function = process_platform_file) {
+
   tryCatch({
     # List files in the folder
     files <- list_gdrive_files(folder_id, platforms)
@@ -290,6 +623,8 @@ process_gdrive_date_folders <- function(conn, parent_folder_id,
                                         date_range = NULL,
                                         platforms = NULL,
                                         temp_dir = tempdir()) {
+  browser()
+
   tryCatch({
     # List folders in the parent
     folders <- list_gdrive_folders(parent_folder_id, pattern = date_pattern)
