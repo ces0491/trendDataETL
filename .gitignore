@@ -1,22 +1,18 @@
-# R-specific files
 .Rproj.user
 .Rhistory
 .RData
 .Ruserdata
 
-# Log files
 *.log
 logs/
 reports/*.log
 dsp_update.log
 
-# Database files
 *.db
 *.sqlite
 *.sqlite3
 music_streaming.db
 
-# Output directories
 reports/
 exports/
 output/
